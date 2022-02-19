@@ -28,8 +28,4 @@ type (
 		Climate string             `json:"climate"`
 		Movies  int                `json:"movies"`
 	}
-
-	DeleteResponse struct {
-		ID primitive.ObjectID `json:"_id"`
-	}
 )

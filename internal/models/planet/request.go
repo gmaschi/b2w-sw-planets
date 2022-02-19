@@ -17,7 +17,7 @@ type (
 
 	ListRequest struct {
 		// TODO: implement pagination
-		Name string `json:"name"`
+		Name string `form:"name"`
 		//PageID   int32  `form:"page_id"`
 		//PageSize int32  `form:"page_size"`
 		//PageID   int32  `form:"page_id" binding:"required,min=1"`

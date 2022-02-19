@@ -29,7 +29,6 @@ func (ms *MongoDBStore) CreatePlanet(ctx context.Context, arg CreatePlanetParams
 	if err != nil {
 		return retPlanet, err
 	}
-
 	// get collection
 	collection := ms.mongodbClient.Database(databaseName).Collection(planetsCollectionName)
 	// planet to insert
@@ -76,7 +75,7 @@ func (ms *MongoDBStore) DeletePlanet(ctx context.Context, id string) error {
 	return nil
 }
 
-// GetPlanet finds a planet based on it's ID
+// GetPlanet finds a planet based on the ID
 func (ms *MongoDBStore) GetPlanet(ctx context.Context, id string) (Planet, error) {
 	collection := ms.mongodbClient.Database(databaseName).Collection(planetsCollectionName)
 	var planet Planet
