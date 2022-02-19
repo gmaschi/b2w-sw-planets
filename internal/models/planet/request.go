@@ -8,16 +8,16 @@ type (
 	}
 
 	GetRequest struct {
-		ID string `uri:"id" binding:"required"`
+		ID string `uri:"id" binding:"required,alphanum"`
 	}
 
 	DeleteRequest struct {
-		ID string `uri:"id" binding:"required"`
+		ID string `uri:"id" binding:"required,alphanum"`
 	}
 
 	ListRequest struct {
 		// TODO: implement pagination
-		Name string `form:"name"`
+		Name string `form:"name" binding:"alphanum"`
 		//PageID   int32  `form:"page_id"`
 		//PageSize int32  `form:"page_size"`
 		//PageID   int32  `form:"page_id" binding:"required,min=1"`

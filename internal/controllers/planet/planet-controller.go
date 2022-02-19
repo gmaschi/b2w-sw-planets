@@ -90,7 +90,7 @@ func (c *Controller) Delete(ctx *gin.Context) {
 func (c *Controller) List(ctx *gin.Context) {
 	var req planetmodel.ListRequest
 
-	if err := ctx.ShouldBindQuery(&req); err != nil {
+	if err := ctx.ShouldBindQuery(&req); err != nil && req.Name != "" {
 		ctx.JSON(http.StatusBadRequest, parseerrors.ErrorResponse(err))
 		return
 	}
