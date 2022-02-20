@@ -34,12 +34,12 @@ func New(store planetsdb.Store) (*Factory, error) {
 }
 
 func (f *Factory) setupRoutes(router *gin.Engine) {
-	planets := router.Group("/planets")
+	planetsV1 := router.Group("/v1/planets")
 	{
-		planets.POST("", f.planetsHandler.planetsController.Create)
-		planets.GET("/:id", f.planetsHandler.planetsController.Planet)
-		planets.GET("", f.planetsHandler.planetsController.List)
-		planets.DELETE("/:id", f.planetsHandler.planetsController.Delete)
+		planetsV1.POST("", f.planetsHandler.planetsController.Create)
+		planetsV1.GET("/:id", f.planetsHandler.planetsController.Planet)
+		planetsV1.GET("", f.planetsHandler.planetsController.List)
+		planetsV1.DELETE("/:id", f.planetsHandler.planetsController.Delete)
 	}
 }
 

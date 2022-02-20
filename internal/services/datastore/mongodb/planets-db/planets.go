@@ -3,7 +3,9 @@ package planetsdb
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	errorsmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet/errors-model"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
@@ -21,17 +23,18 @@ type CreatePlanetParams struct {
 	Climate string `json:"climate"`
 }
 
+// TODO: handle multiple requests to insert the same planet name
+
 // CreatePlanet creates a new planet resource with the specified arguments
 func (ms *MongoDBStore) CreatePlanet(ctx context.Context, arg CreatePlanetParams) (Planet, error) {
 	var retPlanet Planet
-	// get planet movie appearances
 	movies, err := getMovieAppearances(arg.Name)
 	if err != nil {
-		return retPlanet, err
+		return retPlanet, fmt.Errorf("create planet: %s", err.Error())
 	}
-	// get collection
+
 	collection := ms.mongodbClient.Database(databaseName).Collection(planetsCollectionName)
-	// planet to insert
+
 	planetToAdd := Planet{
 		Name:    arg.Name,
 		Terrain: arg.Terrain,
@@ -41,12 +44,13 @@ func (ms *MongoDBStore) CreatePlanet(ctx context.Context, arg CreatePlanetParams
 
 	res, err := collection.InsertOne(ctx, planetToAdd)
 	if err != nil {
-		return retPlanet, err
+		return retPlanet, fmt.Errorf("create planet: %s", errorsmodel.FailedToInsertRecord)
 	}
 	objectID, ok := res.InsertedID.(primitive.ObjectID)
 	if !ok {
-		return retPlanet, err
+		return retPlanet, fmt.Errorf("create planet: %s", errorsmodel.FailedToInsertRecord)
 	}
+
 	retPlanet = Planet{
 		ID:      objectID,
 		Name:    arg.Name,
@@ -54,23 +58,21 @@ func (ms *MongoDBStore) CreatePlanet(ctx context.Context, arg CreatePlanetParams
 		Climate: arg.Climate,
 		Movies:  movies,
 	}
-
 	return retPlanet, nil
 }
 
 // DeletePlanet deletes an existing planet from the collection based on the id
 func (ms *MongoDBStore) DeletePlanet(ctx context.Context, id string) error {
 	collection := ms.mongodbClient.Database(databaseName).Collection(planetsCollectionName)
-	//// convert id string to ObjectId
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete planet: %s", errorsmodel.InvalidID)
 	}
 
 	filter := bson.D{{"_id", objectId}}
 	_, err = collection.DeleteOne(ctx, filter)
 	if err != nil {
-		return err
+		return fmt.Errorf("delete planet: %s", errorsmodel.CouldNotDeleteItem)
 	}
 	return nil
 }
@@ -79,29 +81,26 @@ func (ms *MongoDBStore) DeletePlanet(ctx context.Context, id string) error {
 func (ms *MongoDBStore) GetPlanet(ctx context.Context, id string) (Planet, error) {
 	collection := ms.mongodbClient.Database(databaseName).Collection(planetsCollectionName)
 	var planet Planet
-	// convert id string to ObjectId
+
 	objectId, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
-		return planet, err
+		return planet, fmt.Errorf("get planet: %s", errorsmodel.InvalidID)
 	}
 	filter := bson.D{{"_id", objectId}}
 	err = collection.FindOne(ctx, filter).Decode(&planet)
 	if err != nil {
-		return planet, err
+		return planet, fmt.Errorf("get planet: %s", errorsmodel.FailedToFetchRecord)
 	}
 	return planet, nil
 }
 
 type ListPlanetParams struct {
 	Name string `json:"name"`
-	//Limit  int32  `json:"limit"`
-	//Offset int32  `json:"offset"`
 }
 
-// ListPlanets list planets by pagination or based on the name search
+// ListPlanets list filtered planets based on "name" query or list all of them
 func (ms *MongoDBStore) ListPlanets(ctx context.Context, arg ListPlanetParams) ([]Planet, error) {
 	// TODO: implement pagination
-	// TODO: deal with multiple entries with the same planet name
 	collection := ms.mongodbClient.Database(databaseName).Collection(planetsCollectionName)
 
 	var filter bson.D
@@ -115,20 +114,23 @@ func (ms *MongoDBStore) ListPlanets(ctx context.Context, arg ListPlanetParams) (
 	if err != nil {
 		return nil, err
 	}
-
+	defer cur.Close(ctx)
 	var planets []Planet
 
-	defer cur.Close(ctx)
 	for cur.Next(ctx) {
 		var planet Planet
 		err := cur.Decode(&planet)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("list planets: %s", errorsmodel.FailedToUnmarshalRecord)
 		}
 		planets = append(planets, planet)
 	}
 	if err := cur.Err(); err != nil {
 		return nil, err
+	}
+
+	if len(planets) == 0 {
+		return nil, errors.New(errorsmodel.PlanetDoesNotExist)
 	}
 
 	return planets, nil
@@ -141,12 +143,12 @@ func getMovieAppearances(name string) (int, error) {
 
 	req, err := http.NewRequest(http.MethodGet, searchQuery, nil)
 	if err != nil {
-		return -1, err
+		return -1, errors.New(errorsmodel.FailedToFetchRecord)
 	}
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return -1, err
+		return -1, errors.New(errorsmodel.FailedToFetchRecord)
 	}
 	defer res.Body.Close()
 
@@ -154,11 +156,11 @@ func getMovieAppearances(name string) (int, error) {
 
 	err = json.NewDecoder(res.Body).Decode(&planetInfo)
 	if err != nil {
-		return -1, err
+		return -1, errors.New(errorsmodel.FailedToUnmarshalRecord)
 	}
 
 	if planetInfo.Count != 1 || planetInfo.Results[0].Name != name {
-		return -1, fmt.Errorf("getMovieAppearances: invalid planet name: %s", name)
+		return -1, fmt.Errorf("%s: %s", errorsmodel.InvalidPlanetName, name)
 	}
 
 	return len(planetInfo.Results[0].Films), nil

@@ -3,9 +3,11 @@ package planetcontroller_test
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	planetsfactory "github.com/gmaschi/b2w-sw-planets/internal/factories/planets-factory"
 	planetmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet"
+	errorsmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet/errors-model"
 	mockedstore "github.com/gmaschi/b2w-sw-planets/internal/services/datastore/mocks/mongodb/planets-db"
 	planetsdb "github.com/gmaschi/b2w-sw-planets/internal/services/datastore/mongodb/planets-db"
 	"github.com/gmaschi/b2w-sw-planets/pkg/tools/random"
@@ -106,7 +108,7 @@ func TestCreate(t *testing.T) {
 			data, err := json.Marshal(tc.body)
 			require.NoError(t, err)
 
-			url := "/planets"
+			url := "/v1/planets"
 			req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(data))
 			require.NoError(t, err)
 			// check response
@@ -193,7 +195,7 @@ func TestPlanet(t *testing.T) {
 			require.NoError(t, err)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/planets/%s", tc.planetID)
+			url := fmt.Sprintf("/v1/planets/%s", tc.planetID)
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 
@@ -267,7 +269,7 @@ func TestDelete(t *testing.T) {
 			require.NoError(t, err)
 			recorder := httptest.NewRecorder()
 
-			url := fmt.Sprintf("/planets/%s", tc.planetID)
+			url := fmt.Sprintf("/v1/planets/%s", tc.planetID)
 			req, err := http.NewRequest(http.MethodDelete, url, nil)
 			require.NoError(t, err)
 
@@ -370,7 +372,7 @@ func TestList(t *testing.T) {
 				store.EXPECT().
 					ListPlanets(gomock.Any(), gomock.Eq(listArgs)).
 					Times(1).
-					Return(nil, mongo.ErrNoDocuments)
+					Return(nil, errors.New(errorsmodel.PlanetDoesNotExist))
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)
@@ -414,11 +416,10 @@ func TestList(t *testing.T) {
 
 			var url string
 			if tc.listData.name == "" {
-				url = fmt.Sprintf("/planets")
+				url = fmt.Sprintf("/v1/planets")
 			} else {
-				url = fmt.Sprintf("/planets?name=%s", tc.listData.name)
+				url = fmt.Sprintf("/v1/planets?name=%s", tc.listData.name)
 			}
-			fmt.Println("url: ", url, "-")
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			require.NoError(t, err)
 

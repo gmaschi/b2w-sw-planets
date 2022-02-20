@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	planetmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet"
+	errorsmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet/errors-model"
 	planetsdb "github.com/gmaschi/b2w-sw-planets/internal/services/datastore/mongodb/planets-db"
 	parseerrors "github.com/gmaschi/b2w-sw-planets/pkg/tools/parse-errors"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -101,7 +102,8 @@ func (c *Controller) List(ctx *gin.Context) {
 
 	planets, err := c.store.ListPlanets(ctx, listArgs)
 	if err != nil {
-		if err == mongo.ErrNoDocuments {
+		fmt.Println(err)
+		if err.Error() == errorsmodel.PlanetDoesNotExist {
 			ctx.JSON(http.StatusNotFound, parseerrors.ErrorResponse(err))
 			return
 		}
