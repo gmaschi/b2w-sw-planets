@@ -142,13 +142,15 @@ func (ms *MongoDBStore) ListPlanets(ctx context.Context, arg ListPlanetParams) (
 
 // getMovieAppearances gets the total number of movies that a planet has appeared in
 func getMovieAppearances(name string) (int, error) {
-	baseUrlSearch := "https://swapi.dev/api/planets/?search="
-	searchQuery := baseUrlSearch + name
+	baseUrlSearch := "https://swapi.dev/api/planets/"
 
-	req, err := http.NewRequest(http.MethodGet, searchQuery, nil)
+	req, err := http.NewRequest(http.MethodGet, baseUrlSearch, nil)
 	if err != nil {
 		return -1, errors.New(errorsmodel.FailedToFetchRecord)
 	}
+	q := req.URL.Query()
+	q.Set("search", name)
+	req.URL.RawQuery = q.Encode()
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
