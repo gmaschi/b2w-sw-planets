@@ -103,7 +103,7 @@ func (c *Controller) List(ctx *gin.Context) {
 	planets, err := c.store.ListPlanets(ctx, listArgs)
 	if err != nil {
 		fmt.Println(err)
-		if err.Error() == errorsmodel.PlanetDoesNotExist {
+		if err.Error() == fmt.Errorf("list planets: %s", errorsmodel.PlanetDoesNotExist).Error() {
 			ctx.JSON(http.StatusNotFound, parseerrors.ErrorResponse(err))
 			return
 		}

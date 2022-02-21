@@ -8,6 +8,7 @@ import (
 	errorsmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet/errors-model"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 	"strings"
 )
@@ -89,6 +90,9 @@ func (ms *MongoDBStore) GetPlanet(ctx context.Context, id string) (Planet, error
 	filter := bson.D{{"_id", objectId}}
 	err = collection.FindOne(ctx, filter).Decode(&planet)
 	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return planet, fmt.Errorf("get planet: %s", errorsmodel.PlanetDoesNotExist)
+		}
 		return planet, fmt.Errorf("get planet: %s", errorsmodel.FailedToFetchRecord)
 	}
 	return planet, nil
@@ -130,7 +134,7 @@ func (ms *MongoDBStore) ListPlanets(ctx context.Context, arg ListPlanetParams) (
 	}
 
 	if len(planets) == 0 {
-		return nil, errors.New(errorsmodel.PlanetDoesNotExist)
+		return nil, fmt.Errorf("list planets: %s", errorsmodel.PlanetDoesNotExist)
 	}
 
 	return planets, nil

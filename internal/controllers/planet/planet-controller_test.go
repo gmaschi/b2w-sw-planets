@@ -3,8 +3,8 @@ package planetcontroller_test
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	planetsfactory "github.com/gmaschi/b2w-sw-planets/internal/factories/planets-factory"
 	planetmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet"
 	errorsmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet/errors-model"
@@ -19,9 +19,15 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 )
+
+func TestMain(m *testing.M) {
+	gin.SetMode(gin.TestMode)
+	os.Exit(m.Run())
+}
 
 // TestCreate tests the Create planet controller
 func TestCreate(t *testing.T) {
@@ -372,7 +378,7 @@ func TestList(t *testing.T) {
 				store.EXPECT().
 					ListPlanets(gomock.Any(), gomock.Eq(listArgs)).
 					Times(1).
-					Return(nil, errors.New(errorsmodel.PlanetDoesNotExist))
+					Return(nil, fmt.Errorf("list planets: %s", errorsmodel.PlanetDoesNotExist))
 			},
 			checkResponse: func(t *testing.T, recorder *httptest.ResponseRecorder) {
 				require.Equal(t, http.StatusNotFound, recorder.Code)

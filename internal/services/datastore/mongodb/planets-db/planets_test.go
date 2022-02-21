@@ -2,9 +2,10 @@ package planetsdb
 
 import (
 	"context"
+	"fmt"
+	errorsmodel "github.com/gmaschi/b2w-sw-planets/internal/models/planet/errors-model"
 	"github.com/gmaschi/b2w-sw-planets/pkg/tools/random"
 	"github.com/stretchr/testify/require"
-	"go.mongodb.org/mongo-driver/mongo"
 	"math/rand"
 	"testing"
 	"time"
@@ -76,7 +77,7 @@ func TestDeletePlanet(t *testing.T) {
 
 	deletedPlanet, err := testStore.GetPlanet(context.Background(), planet.ID.Hex())
 	require.Error(t, err)
-	require.EqualError(t, err, mongo.ErrNoDocuments.Error())
+	require.EqualError(t, err, fmt.Errorf("get planet: %s", errorsmodel.PlanetDoesNotExist).Error())
 	require.Empty(t, deletedPlanet)
 }
 
@@ -107,9 +108,12 @@ func TestListPlanets(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			planetsList, err := testStore.ListPlanets(context.Background(), tc.listArgs)
-			require.NoError(t, err)
-			require.NotEmpty(t, planetsList)
-
+			if len(planetsList) == 0 {
+				require.Error(t, err, fmt.Errorf("list planets: %s", errorsmodel.PlanetDoesNotExist))
+			} else {
+				require.NoError(t, err)
+				require.NotEmpty(t, planetsList)
+			}
 			for _, planet := range planetsList {
 				require.NotEmpty(t, planet)
 			}
