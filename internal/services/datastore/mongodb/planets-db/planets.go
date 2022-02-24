@@ -148,6 +148,7 @@ func getMovieAppearances(name string) (int, error) {
 	if err != nil {
 		return -1, errors.New(errorsmodel.FailedToFetchRecord)
 	}
+
 	q := req.URL.Query()
 	q.Set("search", name)
 	req.URL.RawQuery = q.Encode()
